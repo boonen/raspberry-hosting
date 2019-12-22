@@ -1,0 +1,5 @@
+### Ansible template
+*.retry
+
+### IDE files
+*.iml

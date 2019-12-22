@@ -1,0 +1,42 @@
+# playbook: first_user.yml
+---
+
+- hosts: raspberrypi
+  become: yes  
+  vars_prompt:
+    - name: pi_password
+      prompt: "What is the new password of user 'pi'?"
+      private: yes
+      encrypt: "sha512_crypt"
+      confirm: yes
+    - name: username
+      prompt: "What username do you want to create?"
+      private: no
+    - name: password
+      prompt: "What is the password of the new user?"
+      private: yes
+      encrypt: "sha512_crypt"
+      confirm: yes
+  tasks:
+    - name: Change password of user 'pi'
+      user:
+        name: pi
+        password: "{{ pi_password }}"
+    - name: Create new user '{{ username }}'
+      user:
+        name: "{{ username }}"
+        password: "{{ password }}"
+        shell: /bin/bash
+        groups:
+          - users
+    - name: Set authorized key taken from current local user
+      authorized_key:
+        user: "{{ username }}"
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}" 
+    - name: Add user to passwordless sudoers
+      lineinfile:
+        dest: /etc/sudoers.d/020-{{ username }}-nopasswd
+        regexp: "^{{ username }}"  
+        line: "{{ username }} ALL=(ALL) NOPASSWD: ALL"
+        create: yes
